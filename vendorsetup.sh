@@ -1,2 +1,2 @@
-add_lunch_combo omni_X665E-eng
-add_lunch_combo omni_X665E-userdebug
+add_lunch_combo twrp_X665E-eng
+add_lunch_combo twrp_X665E-userdebug
