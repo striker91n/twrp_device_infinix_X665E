@@ -37,6 +37,7 @@ jobs:
 
       - name: Copy device tree
         run: |
+          mkdir -p ~/twrp/device/infinix
           cp -r $GITHUB_WORKSPACE/device/infinix/X665E ~/twrp/device/infinix/X665E
 
       - name: Build TWRP
