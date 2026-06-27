@@ -38,7 +38,19 @@ jobs:
           sudo curl -s https://storage.googleapis.com/git-repo-downloads/repo -o /usr/local/bin/repo
           sudo chmod a+x /usr/local/bin/repo
 
+      - name: Cache AOSP source and build output
+        id: cache-aosp
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/twrp
+            ~/.repo
+          key: aosp-twrp-12.1-${{ github.sha }}
+          restore-keys: |
+            aosp-twrp-12.1-
+
       - name: Initialize repo
+        if: steps.cache-aosp.outputs.cache-hit != 'true'
         run: |
           git config --global user.name "builder"
           git config --global user.email "builder@localhost"
@@ -48,6 +60,7 @@ jobs:
         id: init
 
       - name: Repo sync
+        if: steps.cache-aosp.outputs.cache-hit != 'true'
         run: |
           cd ~/twrp
           repo sync -j$(nproc --all) --force-sync -c --no-tags
@@ -75,6 +88,8 @@ jobs:
           cd ~/twrp
           export ALLOW_MISSING_DEPENDENCIES=true
           export DEVICE_PATH=~/twrp/device/infinix/X665E
+          export USE_CCACHE=1
+          export CCACHE_DIR=~/twrp/.ccache
           source build/envsetup.sh
           lunch twrp_X665E-eng
           make bootimage -j$(nproc --all) 2>&1 | tee build.log
