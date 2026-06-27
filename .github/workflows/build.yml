@@ -76,7 +76,7 @@ jobs:
           export ALLOW_MISSING_DEPENDENCIES=true
           source build/envsetup.sh
           lunch twrp_X665E-eng
-          make recoveryimage -j$(nproc --all) 2>&1 | tee build.log
+          make bootimage -j$(nproc --all) 2>&1 | tee build.log
 
       - name: Upload TWRP image
         uses: actions/upload-artifact@v4
