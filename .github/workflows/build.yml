@@ -74,7 +74,7 @@ jobs:
         run: |
           cd ~/twrp
           export ALLOW_MISSING_DEPENDENCIES=true
-          export TARGET_RECOVERY_FSTAB=~/twrp/device/infinix/X665E/recovery.fstab
+          export DEVICE_PATH=~/twrp/device/infinix/X665E
           source build/envsetup.sh
           lunch twrp_X665E-eng
           make bootimage -j$(nproc --all) 2>&1 | tee build.log
