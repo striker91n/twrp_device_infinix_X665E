@@ -33,7 +33,7 @@ jobs:
           mkdir -p ~/twrp
           cd ~/twrp
           repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
-          repo sync -j$(nproc --all) --force-sync --no-tags --no-clone-bundle --current-branch-only
+          repo sync -j$(nproc --all) --force-sync -c --no-tags
 
       - name: Copy device tree
         run: |
