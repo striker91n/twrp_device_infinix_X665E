@@ -77,7 +77,7 @@ jobs:
           export DEVICE_PATH=~/twrp/device/infinix/X665E
           source build/envsetup.sh
           lunch twrp_X665E-eng
-          make bootimage -j$(nproc --all) 2>&1 | tee build.log
+          make recoveryimage -j$(nproc --all) 2>&1 | tee build.log
 
       - name: Upload TWRP image
         uses: actions/upload-artifact@v4
