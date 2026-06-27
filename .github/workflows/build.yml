@@ -1,0 +1,59 @@
+name: Build TWRP for Infinix X665E (Hot 20i)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout device tree
+        uses: actions/checkout@v4
+        with:
+          path: device/infinix/X665E
+
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-core gnupg flex bison gperf build-essential \
+            zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
+            libncurses5 lib32ncurses5-dev x11proto-core-dev libx11-dev \
+            lib32z-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
+            python3 python3-pip openjdk-11-jdk
+          sudo apt-get install -y bc cpio device-tree-compiler
+
+      - name: Initialize TWRP source
+        run: |
+          git config --global user.name "builder"
+          git config --global user.email "builder@localhost"
+          mkdir -p ~/twrp
+          cd ~/twrp
+          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-12.1
+          repo sync -j$(nproc --all) --force-sync --no-tags --no-clone-bundle
+
+      - name: Copy device tree
+        run: |
+          cp -r $GITHUB_WORKSPACE/device/infinix/X665E ~/twrp/device/infinix/X665E
+
+      - name: Build TWRP
+        run: |
+          cd ~/twrp
+          source build/envsetup.sh
+          lunch omni_X665E-eng
+          mka recoveryimage -j$(nproc --all) 2>&1 | tee build.log
+
+      - name: Upload TWRP image
+        uses: actions/upload-artifact@v4
+        with:
+          name: twrp_X665E.img
+          path: ~/twrp/out/target/product/X665E/recovery.img
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build.log
+          path: ~/twrp/build.log

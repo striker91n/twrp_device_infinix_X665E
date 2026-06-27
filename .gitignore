@@ -1,0 +1,8 @@
+*.img
+*.gz
+*.cpio
+*.log
+*.gz
+# but keep prebuilt kernel and dtb
+!prebuilt/kernel
+!prebuilt/dtb
