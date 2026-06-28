@@ -89,6 +89,23 @@ jobs:
           # Clean stale recovery output from cached previous runs (rsync can't replace dir->symlink)
           rm -rf out/target/product/X665E/recovery
           rm -rf out/target/product/X665E/obj/PACKAGING/recovery_intermediates
+
+          # Patch the build system: relink_libraries recreates recovery/root/vendor/ as a directory
+          # before ramdisk_files-timestamp runs rsync. rsync fails when root/vendor is a symlink
+          # and recovery/root/vendor is a directory. We add rm -rf vendor before the rsync.
+          MAKEFILE="build/make/core/Makefile"
+          if [ -f "$MAKEFILE" ]; then
+            if grep -q "rm -rf .*TARGET_RECOVERY_ROOT_OUT.*vendor" "$MAKEFILE"; then
+              echo "Patch already applied"
+            else
+              # Prepend a vendor cleanup before the recovery ramdisk rsync
+              sed -i 's|rsync -a --exclude=sdcard|rm -rf $(TARGET_RECOVERY_ROOT_OUT)/vendor 2>/dev/null; rsync -a --exclude=sdcard|' "$MAKEFILE"
+              echo "Patched $MAKEFILE for vendor dir cleanup"
+            fi
+          else
+            echo "Warning: $MAKEFILE not found"
+          fi
+
           export ALLOW_MISSING_DEPENDENCIES=true
           export DEVICE_PATH=~/twrp/device/infinix/X665E
           export USE_CCACHE=1
