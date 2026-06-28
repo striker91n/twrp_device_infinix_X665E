@@ -78,6 +78,12 @@ jobs:
           repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
         id: init
 
+      - name: Setup local manifest
+        if: steps.cache-aosp.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/twrp/.repo/local_manifests
+          cp $GITHUB_WORKSPACE/device_tree/local_manifest.xml ~/twrp/.repo/local_manifests/
+
       - name: Repo sync
         if: steps.cache-aosp.outputs.cache-hit != 'true'
         run: |
