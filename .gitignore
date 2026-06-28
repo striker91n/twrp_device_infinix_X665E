@@ -1,9 +1,9 @@
-*.img
 *.gz
 *.cpio
 *.log
-*.gz
 # but keep prebuilt kernel and dtb
 !prebuilt/kernel
 !prebuilt/dtb
+# keep prebuilt dtb.img (MKDTIMG wrapper, tracked via LFS)
+!prebuilt/dtb.img
 !prebuilt/*.dts
