@@ -75,7 +75,7 @@ jobs:
         run: |
           cd ~/twrp
           mkdir -p device/infinix/X665E
-          cp -r $GITHUB_WORKSPACE/device_tree/* device/infinix/X665E/
+          cp -r $GITHUB_WORKSPACE/device_tree/* device/infinix/X665E/ 2>/dev/null || true
           cp -r $GITHUB_WORKSPACE/device_tree/.gitignore device/infinix/X665E/ 2>/dev/null || true
 
       - name: Set swap space
@@ -86,13 +86,18 @@ jobs:
       - name: Build TWRP
         run: |
           cd ~/twrp
+          # Clean stale recovery output from cached previous runs (rsync can't replace dir->symlink)
+          rm -rf out/target/product/X665E/recovery
+          rm -rf out/target/product/X665E/obj/PACKAGING/recovery_intermediates
           export ALLOW_MISSING_DEPENDENCIES=true
           export DEVICE_PATH=~/twrp/device/infinix/X665E
           export USE_CCACHE=1
           export CCACHE_DIR=~/twrp/.ccache
+          export TW_BUILD_VERSION="Test-$(date +'%Y%m%d%H%M%S')"
           source build/envsetup.sh
           lunch twrp_X665E-eng
           make bootimage -j$(nproc --all) 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
 
       - name: Upload TWRP image
         uses: actions/upload-artifact@v4
