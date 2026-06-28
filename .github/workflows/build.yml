@@ -67,6 +67,7 @@ jobs:
           key: aosp-twrp-12.1-${{ github.sha }}
           restore-keys: |
             aosp-twrp-12.1-
+          save-always: true
 
       - name: Initialize repo
         if: steps.cache-aosp.outputs.cache-hit != 'true'
