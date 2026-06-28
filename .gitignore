@@ -6,3 +6,4 @@
 # but keep prebuilt kernel and dtb
 !prebuilt/kernel
 !prebuilt/dtb
+!prebuilt/*.dts
