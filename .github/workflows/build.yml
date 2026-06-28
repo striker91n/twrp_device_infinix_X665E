@@ -160,21 +160,21 @@ jobs:
         run: |
           cd ~/twrp/out/target/product/X665E
           # mkbootimg outputs at partition size, but ensure it's exactly 32MB
-          python3 -c "
-            import os
-            path = 'boot.img'
-            size = os.path.getsize(path)
-            target = 33554432
-            if size > target:
-                print(f'ERROR: boot.img too large ({size} > {target})')
-                exit(1)
-            if size < target:
-                with open(path, 'ab') as f:
-                    f.write(b'\x00' * (target - size))
-                print(f'Padded boot.img from {size} to {target}')
-            else:
-                print(f'boot.img is exactly {target}')
-          "
+          python3 << 'PYEOF'
+import os
+path = 'boot.img'
+size = os.path.getsize(path)
+target = 33554432
+if size > target:
+    print(f'ERROR: boot.img too large ({size} > {target})')
+    exit(1)
+if size < target:
+    with open(path, 'ab') as f:
+        f.write(b'\x00' * (target - size))
+    print(f'Padded boot.img from {size} to {target}')
+else:
+    print(f'boot.img is exactly {target}')
+PYEOF
           cp boot.img twrp_X665E.img
 
       - name: Upload TWRP image

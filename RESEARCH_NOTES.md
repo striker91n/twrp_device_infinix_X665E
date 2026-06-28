@@ -254,6 +254,70 @@ We don't need any of these. We have:
 - FASTBOOT(99): enters LK fastboot mode
 - Boot mode determined by: RTC bits (adb reboot), BCB (para partition), key combos
 
+## Hidden LK Fastboot OEM Commands
+
+Extracted from `lk_a.bin` (2MB, version `x665e_h6126-058caf35d-20221130102306-20`) using `chickendrop89/fastboot-oem-extractor`:
+
+| Command | Description |
+|---------|-------------|
+| `fastboot oem dump_pllk_log` | **Dumps Preloader + LK persistent log buffer from DRAM (256KB at 0x7f7c0000)** — LK crash debug |
+| `fastboot oem dump` | Generic dump (fails with "paritition is not in permission dump" — needs args) |
+| `fastboot oem get_socid` | Get SoC ID |
+| `fastboot oem key` | Key-related |
+| `fastboot oem lks` | LK status |
+| `fastboot oem lock` | Lock bootloader (re-lock) |
+| `fastboot oem off-mode-charge` | Off-mode charging toggle |
+| `fastboot oem p2u` | Power to USB |
+| `fastboot oem printk-ratelimit` | Set printk rate limit |
+| `fastboot oem scp_log_thru_ap_uart` | Route SCP logs through AP UART |
+| `fastboot oem scp_status` | SCP (SCP co-processor) status |
+| `fastboot oem tran_skip_confirm_key` | Skip TRAN confirmation key |
+| `fastboot oem tran_unlock` | TRAN unlock |
+| `fastboot oem ultraflash:` | UltraFlash (needs arg) |
+| `fastboot oem ultraflash_en` | Enable UltraFlash |
+| `fastboot oem unlock` | Unlock bootloader |
+| `fastboot oem unlock failed` | Unlock failed |
+| `fastboot oem usb2jtag` | USB to JTAG bridge |
+
+### `fastboot oem dump_pllk_log` — Critical Debug Tool
+
+This is the **primary method** for debugging early boot crashes (LK-level) without UART or BROM.
+
+**What it outputs:**
+1. **Persistent log store** at DRAM `0x7f7c0000` (256KB, mapped as `log_store` region):
+   - Preloader log (0x4808 bytes from offset 0x400 — ~18KB of PL boot trace)
+   - LK log section (written by LK before crashing/booting kernel)
+   - Signature validation: `sig 0xcdab3412` (valid), `buff_size 0x40000`
+2. **Current live LK log buffer** — appended after the persistent store dump, shows LK's running log
+
+**How to use for crash debugging:**
+1. Flash suspect boot.img: `fastboot flash boot_a twrp.img`
+2. Reboot: `fastboot reboot` → device bootloops (LK crashes)
+3. Catch preloader VCOM → send `FASTBOOT` via `boot_fastboot.py`
+4. Dump crash log: `fastboot oem dump_pllk_log`
+5. The persistent store should contain the crash trace from LK's last boot attempt
+
+**Log format:**
+```
+[4649] LK_LOG_STORE: dram pl/lk log buff mapping start addr = 0x7f7c0000, size = 0x40000
+[4650] LK_LOG_STORE:sram buff header 0x10f200, current log header 0x10f234, sig 0xcdab3412, buff_size 0x40000, pl log size 0x4808@0x400, lk log size 0x0@0x400!
+[4652] LK_LOG_STORE: buff ready.
+[954] [PROFILE] mmc read 1 blks in 0 ms: 8KB/s
+...
+```
+Timestamps are in milliseconds from boot start. The `[954]` onwards is the current LK boot log. Preloader log from persistent store appears first.
+
+### Persistent Log Store Details
+
+- **Address**: `0x7f7c0000` in DRAM (reserved as `log_store` in mblock_reserve)
+- **Size**: 0x40000 (256KB)
+- **Signature**: `0xcdab3412` (validates buffer integrity)
+- **Preloader log**: ~0x4808 bytes at offset 0x400 (~18KB)
+- **LK log**: at offset 0x400 + pl_log_size (variable)
+- Buffer persists across warm reboots (survives watchdog reset)
+- Might be cleared on cold boot / power loss (DRAM contents lost)
+- Current boot's LK log is also available live (appended after persistent store)
+
 ## Key Combos (Infinix X665E)
 
 - Recovery: Vol Up + Power (at boot, release power at logo, keep vol up)
