@@ -85,7 +85,7 @@ jobs:
           df -h
           # Retry loop for network flakiness
           for i in 1 2 3; do
-            repo sync -j$(nproc --all) --force-sync -c --no-tags --no-clone-bundle --depth=1 && break || sleep 30
+            repo sync -j$(nproc --all) --force-sync -c --no-tags --no-clone-bundle && break || sleep 30
           done
           df -h
 
