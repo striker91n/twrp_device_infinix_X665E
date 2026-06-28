@@ -2,8 +2,36 @@ import struct
 import os
 import sys
 
+DT_TABLE_MAGIC = 0xD7B7AB1E
+FDT_MAGIC = 0xD00DFEED
+MKDTIMG_HEADER_SIZE = 32
+MKDTIMG_ENTRY_SIZE = 32
+
 def page_align(size, page_size):
     return ((size + page_size - 1) // page_size) * page_size
+
+def make_mkdtimg(fdt_data, page_size=2048):
+    fdt_size = len(fdt_data)
+    dt_offset = MKDTIMG_HEADER_SIZE + MKDTIMG_ENTRY_SIZE
+    total_size = dt_offset + fdt_size
+
+    hdr = struct.pack('<IIIIIIII',
+        DT_TABLE_MAGIC,
+        total_size,
+        MKDTIMG_HEADER_SIZE,
+        MKDTIMG_ENTRY_SIZE,
+        1,
+        MKDTIMG_HEADER_SIZE,
+        page_size,
+        0
+    )
+    entry = struct.pack('<IIIIIIIII',
+        fdt_size,
+        dt_offset,
+        0, 0,
+        0, 0, 0, 0, 0
+    )
+    return hdr + entry + fdt_data
 
 def fix_bootimg(input_path, dtb_path, output_path, target_size=33554432):
     with open(input_path, 'rb') as f:
@@ -26,13 +54,11 @@ def fix_bootimg(input_path, dtb_path, output_path, target_size=33554432):
 
     header_size = page_size
 
-    # Calculate component offsets
     kernel_offset = header_size
     kernel_padded = page_align(kernel_size, page_size)
     ramdisk_offset = kernel_offset + kernel_padded
     ramdisk_padded = page_align(ramdisk_size, page_size)
 
-    # DTB starts after ramdisk
     dtb_data_start = ramdisk_offset + ramdisk_padded
     dtb_size = len(data) - dtb_data_start
 
@@ -41,14 +67,26 @@ def fix_bootimg(input_path, dtb_path, output_path, target_size=33554432):
         return False
 
     print(f"Existing DTB area: offset={dtb_data_start}, size={dtb_size}")
-    print(f"First bytes: {data[dtb_data_start:dtb_data_start+4].hex()}")
+    existing_magic = struct.unpack_from('>I', data, dtb_data_start)[0] if dtb_size >= 4 else 0
+    print(f"Existing DTB magic: 0x{existing_magic:08X} {'(MKDTIMG)' if existing_magic == DT_TABLE_MAGIC else '(FDT)' if existing_magic == FDT_MAGIC else '(unknown)'}")
 
-    # Read the prebuilt MKDTIMG
     with open(dtb_path, 'rb') as f:
-        mkdtimg = f.read()
-    print(f"MKDTIMG DTB size: {len(mkdtimg)}")
+        dtb_data = f.read()
+    print(f"Input DTB size: {len(dtb_data)}")
 
-    # Reconstruct: header + kernel + ramdisk + MKDTIMG DTB + padding to target_size
+    input_magic = struct.unpack('>I', dtb_data[:4])[0]
+    if input_magic == FDT_MAGIC:
+        print("Input is raw FDT, wrapping in MKDTIMG container")
+        mkdtimg = make_mkdtimg(dtb_data, page_size)
+    elif input_magic == DT_TABLE_MAGIC:
+        print("Input is already MKDTIMG, using as-is")
+        mkdtimg = dtb_data
+    else:
+        print(f"ERROR: Unknown DTB format (magic=0x{input_magic:08X})")
+        return False
+
+    print(f"Final MKDTIMG size: {len(mkdtimg)}")
+
     new_dtb_padded = page_align(len(mkdtimg), page_size)
     new_size = dtb_data_start + new_dtb_padded
 
@@ -60,8 +98,7 @@ def fix_bootimg(input_path, dtb_path, output_path, target_size=33554432):
     result[:dtb_data_start] = data[:dtb_data_start]
     result[dtb_data_start:dtb_data_start + len(mkdtimg)] = mkdtimg
 
-    # Zero out DTB header v2 fields (let bootloader scan for it)
-    if header_version >= 2 and len(data) >= 1632:
+    if header_version >= 2 and len(data) >= 1648:
         struct.pack_into('<I', result, 1640, 0)
         struct.pack_into('<I', result, 1644, 0)
 

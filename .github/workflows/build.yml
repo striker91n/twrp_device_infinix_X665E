@@ -121,7 +121,7 @@ jobs:
           cd ~/twrp/out/target/product/X665E
           python3 $GITHUB_WORKSPACE/device_tree/fix_bootimg.py \
             boot.img \
-            $GITHUB_WORKSPACE/device_tree/prebuilt/dtb \
+            $GITHUB_WORKSPACE/device_tree/prebuilt/dtb.dtb \
             twrp_X665E.img
 
       - name: Upload TWRP image
