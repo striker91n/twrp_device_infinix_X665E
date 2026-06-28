@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
   <remote name="github" fetch="https://github.com" />
-  <remote name="aosp" fetch="https://android.googlesource.com" />
 
   <remove-project name="platform/bootable/recovery" />
 
   <project path="bootable/recovery" name="TeamWin/android_bootable_recovery" remote="github" revision="android-12.1" />
-  <project path="external/openaes" name="platform/external/openaes" remote="aosp" revision="android-12.1.0_r4" />
+  <project path="external/openaes" name="platform/external/openaes" revision="android-12.1.0_r4" />
 </manifest>
