@@ -16,8 +16,27 @@ jobs:
         with:
           path: device_tree
 
-      - name: Cleanup runner
-        uses: rokibhasansagar/slimhub_actions@main
+      - name: Aggressive disk space cleanup
+        run: |
+          echo "=== Disk before cleanup ==="
+          df -h
+          # Remove pre-installed SDKs and runtimes we don't need
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/lib/jvm
+          sudo apt-get clean -y
+          sudo apt-get autoremove -y
+          # Remove unnecessary packages
+          sudo apt-get purge -y dotnet-* || true
+          sudo apt-get purge -y mono-* || true
+          sudo apt-get purge -y php* || true
+          # Remove jdk/jvm (we'll reinstall specific version later)
+          sudo rm -rf /usr/lib/jvm || true
+          echo "=== Disk after cleanup ==="
+          df -h
 
       - name: Install dependencies
         run: |
@@ -63,7 +82,12 @@ jobs:
         if: steps.cache-aosp.outputs.cache-hit != 'true'
         run: |
           cd ~/twrp
-          repo sync -j$(nproc --all) --force-sync -c --no-tags
+          df -h
+          # Retry loop for network flakiness
+          for i in 1 2 3; do
+            repo sync -j$(nproc --all) --force-sync -c --no-tags --no-clone-bundle --depth=1 && break || sleep 30
+          done
+          df -h
 
       - name: Replace AOSP recovery with TeamWin TWRP
         run: |
