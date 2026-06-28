@@ -91,8 +91,15 @@ jobs:
           df -h
           # Retry loop for network flakiness
           for i in 1 2 3; do
-            repo sync -j$(nproc --all) --force-sync -c --no-tags --no-clone-bundle && break || sleep 30
+            if repo sync -j$(nproc --all) --force-sync -c --no-tags --no-clone-bundle; then
+              echo "Repo sync succeeded"
+              exit 0
+            fi
+            echo "Repo sync attempt $i failed, sleeping 30..."
+            sleep 30
           done
+          echo "Repo sync failed after 3 attempts"
+          exit 1
           df -h
 
       - name: Replace AOSP recovery with TeamWin TWRP
