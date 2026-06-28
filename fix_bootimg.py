@@ -25,11 +25,11 @@ def make_mkdtimg(fdt_data, page_size=2048):
         page_size,
         0
     )
-    entry = struct.pack('<IIIIIIIII',
+    entry = struct.pack('<IIIIIIII',
         fdt_size,
         dt_offset,
         0, 0,
-        0, 0, 0, 0, 0
+        0, 0, 0, 0
     )
     return hdr + entry + fdt_data
 
@@ -101,6 +101,11 @@ def fix_bootimg(input_path, dtb_path, output_path, target_size=33554432):
     if header_version >= 2 and len(data) >= 1648:
         struct.pack_into('<I', result, 1640, 0)
         struct.pack_into('<I', result, 1644, 0)
+    if header_version >= 2 and len(data) >= 1660:
+        # Stock image has dtb_size=0 dtb_addr=0 — LK finds MKDTIMG by scanning.
+        # Setting these confuses some LK versions. Zero them out like stock.
+        struct.pack_into('<I', result, 1648, 0)
+        struct.pack_into('<Q', result, 1652, 0)
 
     with open(output_path, 'wb') as f:
         f.write(result)
